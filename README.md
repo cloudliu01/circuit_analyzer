@@ -3,40 +3,41 @@
 
 ```mermaid
 flowchart LR
-    A[SPICE 网表<br/>(含 .SUBCKT 层次)] --> B[Python 解析/抽取<br/>PySpice/自研解析]
-    B --> C{层次处理策略}
-    C -->|保留层次| C1[记录 within 关系<br/>Module/Instance/Pin/Net]
-    C -->|部分展开| C2[对指定子树 flatten<br/>保持来源映射]
-    C -->|完全展开| C3[Flatten 全局<br/>生成层次路径标签]
+    A[SPICE Netlist - SUBCKT hierarchy] --> B[Python Parser and Extractor]
+    B --> C{Hierarchy Handling}
+    C -->|Keep hierarchy| C1[Record within relations]
+    C -->|Partial flatten| C2[Flatten selected subcircuits]
+    C -->|Full flatten| C3[Flatten all and keep path labels]
 
-    C1 --> D[RDF 映射生成<br/>(RDFLib 写 Turtle/N-Triples)]
+    C1 --> D[RDF Mapping - RDFLib generate TTL or NT]
     C2 --> D
     C3 --> D
 
-    subgraph E[质量管控]
-      D --> E1[SHACL 校验<br/>结构/连通性/必填项]
-      E1 --> E2[统计与报告<br/>错误/警告/指标]
+    subgraph E[Quality Control]
+      D --> E1[SHACL validation]
+      E1 --> E2[Reports and statistics]
     end
 
-    D --> F[装载到三元组存储]
-    F -->|首选| G[(Fuseki + TDB2)]
-    F -->|可选| H[(其它支持推理的开源库)]
+    D --> F[Load into Triple Store]
+    F -->|Preferred| G[Fuseki with TDB2]
+    F -->|Optional| H[Other RDF store with reasoning]
 
-    subgraph I[推理（可开关）]
-      G --> I1[轻量 OWL-RL / RDFS]
+    subgraph I[Reasoning Layer]
+      G --> I1[OWL RL or RDFS inference]
       H --> I1
     end
 
-    I1 --> J[SPARQL 查询 / API]
+    I1 --> J[SPARQL Queries and APIs]
     E2 --> J
 
-    subgraph K[版本化与更新]
-      A -. 每次全量 -.-> K1[以命名图存一版<br/>ex: graph urn:ckt:design:v2025.10.22]
-      K1 -->|切换当前| K2[符号链接/元数据<br/>prov:wasDerivedFrom]
-      K1 -->|老版本保留| K3[回归查询/对比]
+    subgraph K[Versioning and Updates]
+      A -. full update per design -.-> K1[Store as named graph]
+      K1 -->|Switch current| K2[Metadata prov wasDerivedFrom]
+      K1 -->|Keep old| K3[Compare versions]
     end
 
-    J --> L[上层功能：<br/>结构搜索/门识别/统计报表]
+    J --> L[Higher level Functions: structure search, gate recognition, reports]
+
 ```
 
 **要点说明（对应上图）：**
@@ -54,42 +55,43 @@ flowchart LR
 
 ```mermaid
 classDiagram
-    class c:Design{
-      +hasTop c:Module
+    class Design {
+      +hasTop : Module
     }
-    class c:Module{
-      +hasInstance c:Instance*
-      +hasNet c:Net*
-      +hasPort c:Port*
+    class Module {
+      +hasInstance : Instance*
+      +hasNet : Net*
+      +hasPort : Port*
     }
-    class c:Instance{
-      +ofCell c:LibraryCell
-      +within c:Module
-      +hasPin c:Pin*
+    class Instance {
+      +ofCell : LibraryCell
+      +within : Module
+      +hasPin : Pin*
     }
-    class c:LibraryCell{
-      +hasPort c:Port*
-      +cellType skos:Concept  %% 可挂到门族词表
+    class LibraryCell {
+      +hasPort : Port*
+      +cellType : Concept
     }
-    class c:Port{
-      +direction c:Dir   %% in/out/inout
+    class Port {
+      +direction : Direction
     }
-    class c:Pin{
-      +ofPort c:Port
-      +connectedTo c:Net
+    class Pin {
+      +ofPort : Port
+      +connectedTo : Net
     }
-    class c:Net{
-      +within c:Module
+    class Net {
+      +within : Module
     }
 
-    c:Design "1" --> "1" c:Module : hasTop
-    c:Module "1" --> "0..*" c:Instance : hasInstance
-    c:Module "1" --> "0..*" c:Net : hasNet
-    c:Module "1" --> "0..*" c:Port : hasPort
-    c:Instance "1" --> "1" c:LibraryCell : ofCell
-    c:Instance "1" --> "0..*" c:Pin : hasPin
-    c:Pin "1" --> "1" c:Port : ofPort
-    c:Pin "1" --> "1" c:Net : connectedTo
+    Design "1" --> "1" Module : hasTop
+    Module "1" --> "0..*" Instance : hasInstance
+    Module "1" --> "0..*" Net : hasNet
+    Module "1" --> "0..*" Port : hasPort
+    Instance "1" --> "1" LibraryCell : ofCell
+    Instance "1" --> "0..*" Pin : hasPin
+    Pin "1" --> "1" Port : ofPort
+    Pin "1" --> "1" Net : connectedTo
+
 ```
 
 **推理与校验边界（简述）：**
