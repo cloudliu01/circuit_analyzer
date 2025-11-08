@@ -58,6 +58,8 @@
 - [ ] T020 [P] [US2] Build constrained reachability query builder with polarity/alias/voltage gates in `src/query/reachability.py`
 - [ ] T021 [US2] Update `api/app/routers/query.py` to execute reachability templates, enforce ≤30 s budgets, log GraphDB query IDs, and include `queryHash` + `datasetDigest` in responses
 - [ ] T022 [US2] Add pattern + reachability tests using RDF fixtures in `tests/patterns/test_pattern_workflow.py`
+- [ ] T023 [US2] Implement precision/recall regression harness over the positive/negative fixture suite (≥95% precision, ≥90% recall) in `tests/patterns/test_metrics.py`
+- [ ] T024 [US2] Integrate SPARQL validation step (GraphDB `/validate` + `sparql --validate`) into `src/patterns/registry.py` pipeline before persisting templates
 
 ---
 
@@ -67,11 +69,11 @@
 
 **Independent Test**: With existing pad fixtures, run the rule engine via `/assessments?topPin=PAD_A1` and confirm the response includes `esd:status`, `query:evidencePath`, `query:missingComponents`, SPARQL hash, and dataset digest; LV MOS violations should block assessment creation.
 
-- [ ] T023 [P] [US3] Encode rule metadata (scope, severity, parameters) and reusable predicates in `src/esd/rules.py`
-- [ ] T024 [US3] Implement rule engine that orchestrates pattern executions, constrained reachability, and LV isolation checks in `src/esd/engine.py`
-- [ ] T025 [US3] Persist assessments, evidence paths, SPARQL hashes, and dataset digests back into GraphDB via `src/esd/persistence.py`
-- [ ] T026 [US3] Expose `/assessments` router for listing/filtering rule outcomes with evidence URIs in `api/app/routers/assessments.py`
-- [ ] T027 [US3] Add regression tests covering PASS/FAIL/SUSPECT scenarios and metadata gating in `tests/esd/test_rule_engine.py`
+- [ ] T025 [P] [US3] Encode rule metadata (scope, severity, parameters) and reusable predicates in `src/esd/rules.py`
+- [ ] T026 [US3] Implement rule engine that orchestrates pattern executions, constrained reachability, and LV isolation checks in `src/esd/engine.py`
+- [ ] T027 [US3] Persist assessments, evidence paths, SPARQL hashes, and dataset digests back into GraphDB via `src/esd/persistence.py`
+- [ ] T028 [US3] Expose `/assessments` router for listing/filtering rule outcomes with evidence URIs in `api/app/routers/assessments.py`
+- [ ] T029 [US3] Add regression tests covering PASS/FAIL/SUSPECT scenarios and metadata gating in `tests/esd/test_rule_engine.py`
 
 ---
 
@@ -79,9 +81,9 @@
 
 **Purpose**: Final hardening, documentation, and operational readiness.
 
-- [ ] T028 Add automated quickstart verification script to `scripts/run_quickstart.sh` that executes ingestion + reachability smoke tests
-- [ ] T029 Document API-key management and rotation guidance in `docs/security.md`
-- [ ] T030 Add structured logging & metrics wiring for ingestion, pattern, and assessment routers inside `api/app/main.py`
+- [ ] T030 Add automated quickstart verification script to `scripts/run_quickstart.sh` that executes ingestion + reachability smoke tests
+- [ ] T031 Document API-key management and rotation guidance in `docs/security.md`
+- [ ] T032 Add structured logging & metrics wiring for ingestion, pattern, and assessment routers inside `api/app/main.py`
 
 ---
 
@@ -97,8 +99,8 @@
 ## Parallel Execution Examples
 
 - **US1**: T009 and T010 can proceed in parallel (parser vs RDF emitter) before converging in T011/T012.
-- **US2**: T017/T018 (metadata + registry) can run concurrently with T020 (reachability builder) as long as the GraphDB client from Phase 2 exists.
-- **US3**: T023 (rule definitions) and T025 (persistence) can proceed in parallel once US2’s reachability APIs are stable.
+- **US2**: T017/T018 (metadata + registry) can run concurrently with T020 (reachability builder) and T023/T024 (metrics/validation) once foundational services exist.
+- **US3**: T025 (rule definitions) and T027 (persistence) can proceed in parallel once US2’s reachability APIs are stable.
 
 ## Implementation Strategy
 

@@ -34,8 +34,10 @@ The current repository layout already contains the directories the ontology, pat
 │   └── app/
 │       ├── main.py
 │       └── routers/
+│           ├── ingest.py
 │           ├── patterns.py
-│           └── query.py
+│           ├── query.py
+│           └── assessments.py
 ├── data/
 │   └── seed.ttl
 ├── patterns/
@@ -64,7 +66,7 @@ The current repository layout already contains the directories the ontology, pat
   - `src/common` for config, logging, secrets, and API-key providers
   - `src/validation` for SHACL runners
   - `src/cli` for Typer-based commands (e.g., `ingest-cdl`)
-- `api/app/main.py` hosts the FastAPI service surface, and `api/app/routers/` must always contain `ingest.py`, `patterns.py`, `query.py`, and `assessments.py` so the contracts remain routable.
+- `api/app/main.py` hosts the FastAPI service surface, and `api/app/routers/` always contains `ingest.py`, `patterns.py`, `query.py`, and `assessments.py` so the documented contracts remain routable.
 - `patterns/` stores reusable `.subckt` templates that the API container mounts at `/workspace/patterns` (see `docker-compose.yml`) for live pattern extraction.
 - `data/` contains canonical RDF exports (e.g., `seed.ttl`) and is volume-mounted into both GraphDB (`/opt/graphdb/home`) and the API container for deterministic fixtures.
 - `tests/` houses regression suites: fixture CDL netlists under `tests/fixtures/`, parser ingestion tests under `tests/parser/`, pattern + reachability tests in `tests/patterns/`, and ESD rule regression tests in `tests/esd/`.
