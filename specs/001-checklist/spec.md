@@ -7,6 +7,49 @@ Define the ontology-based data model and reasoning mechanism for hierarchical ci
 This specification describes how hierarchical SPICE/Verilog netlists are represented as RDF/OWL graphs and how pattern-based graph search and constrained reachability are achieved.
 All definitions and behaviors comply with the Constitution principles.
 
+## Clarifications
+
+### Session 2025-11-08
+
+- Q: What performance budget should cap each per-TopPin SPARQL pattern plus constrained reachability evaluation? → A: Allow up to 30 seconds per TopPin to accommodate very large graphs without optimization pressure.
+- Q: How should rule evaluation behave when required metadata (voltage class, alias definitions, model tags) is missing for any device involved? → A: Abort the evaluation run and emit no assessment until metadata gaps are resolved.
+
+## Scaffold Settings
+
+The current repository layout already contains the directories the ontology, pattern engine, and validation stack rely on. New work must keep the following scaffold to stay aligned with the docker-compose wiring and test fixtures:
+
+```text
+.
+├── api/
+│   └── app/
+│       ├── main.py
+│       └── routers/
+│           ├── patterns.py
+│           └── query.py
+├── data/
+│   └── seed.ttl
+├── patterns/
+│   ├── README.md
+│   └── inv.subckt
+├── specs/
+│   └── 001-checklist/
+│       └── spec.md   # this document
+├── tests/
+│   ├── test_esd_rules.py
+│   └── fixtures/
+│       ├── esd_no_clamp.cdl
+│       ├── esd_single_diode.cdl
+│       └── lv_mos_direct_pad.cdl
+└── docker-compose.yml
+```
+
+- `api/app/main.py` hosts the FastAPI surface for pattern registration, constrained reachability queries, and ESD assessment endpoints; new routers belong under `api/app/routers/`.
+- `patterns/` stores reusable `.subckt` templates that the API container mounts at `/workspace/patterns` (see `docker-compose.yml`) for live pattern extraction.
+- `data/` contains canonical RDF exports (e.g., `seed.ttl`) and is volume-mounted into both Fuseki (`/fuseki`) and the API container for deterministic fixtures.
+- `tests/fixtures/` provides golden SPICE netlists wired into `tests/test_esd_rules.py`; add new regression cases here before expanding rulepacks.
+- `specs/` holds feature documentation, clarifications, and downstream plans; every scaffold change must document its intent in the corresponding spec directory.
+- `docker-compose.yml` orchestrates Fuseki + API services and binds the `patterns/` and `data/` volumes; keep new services consistent with this composition to avoid drift between local dev and CI.
+
 ---
 
 ## 2. Namespaces
@@ -135,6 +178,7 @@ The engine evaluates R1–R4 and emits an `esd:Assessment` with:
 - Matched subgraphs and rule outcomes serialized to RDF/JSON-LD.
 - Evidence paths are stored as RDF lists (or JSON-LD arrays) for audit.
 - All outputs include SPARQL query hash and dataset digest.
+- If any device or net lacks mandatory metadata (voltage class, alias mapping, model flags), abort the evaluation and emit no assessments; instead log the missing facts and block downstream consumption until metadata is complete.
 
 ---
 
@@ -144,6 +188,7 @@ The engine evaluates R1–R4 and emits an `esd:Assessment` with:
 - **Determinism:** same inputs produce the same matches and assessments.
 - **Metrics:** maintain precision/recall over the fixture suite; regress on any rulepack change.
 - **Integration:** tests cover alias closure, polarity handling, voltage class filtering, and hierarchical boundary expansion.
+- **Performance Budget:** each per-TopPin evaluation (pattern execution plus constrained reachability) must complete within 30 seconds on nominal dataset sizes; log any overruns for tuning.
 
 ---
 
