@@ -164,12 +164,26 @@ ESD verification additionally requires **reachability with constraints** (direct
 4. **Execution:** Run against the RDF dataset; collect `query:result` bindings.
 5. **Traceability:** Persist SPARQL hash, dataset digest, timestamps, and matched subgraphs.
 
+#### Match Type Semantics
+- **Exact**: all devices/nets specified in the source `.SUBCKT` must be present with identical topology; SPARQL templates use strict `BIND` equality filters. Results are PASS/FAIL with no scoring.
+- **Structural**: allows device renaming but requires topological equivalence. Templates constrain degree/roles rather than literal names.
+- **Functional**: focuses on intent (e.g., logical NAND behaviour) and allows alternative device families; templates use `VALUES` lists and optional blocks. Responses include qualitative notes but still require deterministic `queryHash`.
+- **Fuzzy**: permits partial matches. The engine emits `query:score` (0–1) derived from matched components / expected components. Fuzzy matches are sorted by score and truncated to the top 10 results per request.
+
+Conflicting directives inside `pattern:constraints` are resolved deterministically: `exclude` rules take precedence over `include`, voltage-class filters override device-family filters, and the constraint processor logs a warning plus a `query:missingComponents` note when users request mutually exclusive predicates.
+
 ### 5.3 Reachability with Constraints
 ESD analysis needs directed/path-constrained search from `io:TopPin` to `tech:GlobalRail` (VDD, VSS) with alias closure (`tech:aliasOf*`). Constraints include:
 - **Polarity:** respect diode anode→cathode and MOS body diode direction via `ckt:pinType` and model metadata.
 - **Voltage Class:** prevent LV device exposure at the pad without protection (`tech:voltageClass`).
 - **Device Family:** prefer paths through `tech:isESDDevice=true` components for protection assertions.
 - **Neighborhood Scope:** limit search depth using `pattern:scope` or rule parameters.
+
+Additional reachability safeguards:
+- **Cycle protection:** property-path queries include `DISTINCT` and explicit hop counters (default max depth = 4) to avoid infinite loops; repeated nets/devices terminate the traversal with a SUSPECT note.
+- **Disconnected components:** when no alias path reaches VDD/VSS, the engine records `query:missingComponents` with the blocking net/device and returns a FAIL for severity BLOCKER/CRITICAL rules, SUSPECT otherwise.
+- **Multi-rail domains:** pads referencing multiple rails must declare the intended source/sink; the reachability engine evaluates each rail separately and merges evidence paths to prevent false positives.
+- **Polarity conflicts:** if diode orientation conflicts with requested direction, the hop is skipped and a warning is logged; repeated polarity violations elevate the assessment to SUSPECT.
 
 _Simplified SPARQL sketch_ (illustrative):
 ```sparql
@@ -207,6 +221,16 @@ Define rulepacks using `esd:Rule` with orchestrated sub-conditions:
 
 The engine evaluates R1–R4 and emits an `esd:Assessment` with:
 `esd:status` (PASS/FAIL/SUSPECT), `query:evidencePath`, `query:missingComponents`, optional `query:score`.
+
+#### Severity/Status Reconciliation
+
+| `esd:severity` | Default `esd:status` on violation | Required Action |
+|----------------|-----------------------------------|-----------------|
+| BLOCKER        | FAIL                              | Stop ingestion/reporting; issue must be fixed before tape-out. |
+| CRITICAL       | FAIL (unless explicit waiver)     | Open remediation ticket; assessments remain FAIL until waiver recorded. |
+| WARNING        | SUSPECT                           | Continue processing but highlight in assessment summary/logs. |
+
+When a rule’s computed status disagrees with its severity (e.g., fuzzy match returns PASS for a CRITICAL rule), the severity wins: the assessment is downgraded to SUSPECT and annotated with `query:missingComponents` referencing the conflicting evidence. Reviewers can override by attaching a signed waiver reference stored alongside the assessment metadata.
 
 ### 5.5 Pattern Registration Enhancements
 - `pattern:constraints` supports JSON/YAML describing direction, voltage class filters, device family inclusion/exclusion, neighborhood depth.
@@ -258,7 +282,8 @@ The engine evaluates R1–R4 and emits an `esd:Assessment` with:
 - **Pattern Validity:** all generated templates must be valid SPARQL 1.1.
 - **Fixture Library:** include positive/negative ESD cases: `no_clamp`, `single_diode_only`, `reverse_diode`, `lv_mos_direct_pad`, `rc_trigger_blocked`, etc.
 - **Determinism:** same inputs produce the same matches and assessments.
-- **Metrics:** maintain precision/recall over the fixture suite; regress on any rulepack change.
+- **Metrics:** maintain ≥95% precision and ≥90% recall over the fixture suite (10 positive / 10 negative minimum). Any regression outside this bound blocks release until addressed.
+- **SPARQL Validation:** every generated template must pass GraphDB’s `/repositories/{id}/validate` endpoint and Apache Jena `sparql --query ... --validate` checks before promotion.
 - **Integration:** tests cover alias closure, polarity handling, voltage class filtering, and hierarchical boundary expansion.
 - **Performance Budget:** each per-TopPin evaluation (pattern execution plus constrained reachability) must complete within 30 seconds on nominal dataset sizes; log any overruns for tuning.
 
@@ -267,6 +292,20 @@ The engine evaluates R1–R4 and emits an `esd:Assessment` with:
 ## 8. Versioning
 - Spec version: **0.4.0**
 - Aligned Constitution version: **1.1.0**
+
+---
+
+## 9. Assumptions & Dependencies
+
+- **Netlist inputs**: CDL files must be LVS-clean, include `.MODEL` statements with voltage-class annotations, and follow `/`-delimited hierarchy names (e.g., `top/u1/u2`). Missing metadata is treated as a hard stop (see §6.3).
+- **Technology metadata**: Standard cell libraries supply pin order, device families, and alias rails used by the parser to normalize `ckt:type` and `ckt:pinType`.
+- **Toolchain versions**:
+  - Python **3.11**
+  - `rdflib >= 6.3`, `pySHACL >= 0.23`, `SPARQLWrapper >= 2.0`
+  - Ontotext GraphDB **10.5.x** (Docker image `ontotext/graphdb:10.5.3`) with `/repositories/{id}/validate` support
+  - Apache Jena `arq` CLI for template validation
+- **Deployment assumptions**: Docker + docker-compose orchestrate GraphDB and FastAPI services; no external network access is required after container builds.
+- **Security dependencies**: API keys are stored via Secrets Manager (or `.env` placeholders for local dev) and rotated through environment refresh; ingestion relies on HTTPS when deployed remotely.
 
 ---
 
