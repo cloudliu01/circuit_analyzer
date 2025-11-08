@@ -11,9 +11,9 @@
 
 **Purpose**: Project initialization and environment hygiene.
 
-- [ ] T001 Add rdflib, pySHACL, SPARQLWrapper, typer, and ingestion extras to `pyproject.toml`
-- [ ] T002 Document required env vars (`GRAPHDB_URL`, `GRAPHDB_REPOSITORY`, `API_INGEST_KEY`) inside `.env.example`
-- [ ] T003 Describe end-to-end bootstrap (Docker + Poetry + ingestion CLI) in `README.md`
+- [x] T001 Add rdflib, pySHACL, SPARQLWrapper, typer, and ingestion extras to `pyproject.toml`
+- [x] T002 Document required env vars (`GRAPHDB_URL`, `GRAPHDB_REPOSITORY`, `API_INGEST_KEY`) inside `.env.example`
+- [x] T003 Describe end-to-end bootstrap (Docker + Poetry + ingestion CLI) in `README.md`
 
 ---
 

@@ -115,3 +115,34 @@ classDiagram
 * **版本化**：每个电路版本独立命名图；元数据记 `prov:wasDerivedFrom`、生成时间、工具版本。
 * **规模目标**：首期 ~10k 实例；采用离线批量装载（Bulk load）优先，保持查询交互顺畅。
 
+## 开发环境启动 (Dev Bootstrap)
+
+1. 安装 Python 依赖：
+   ```bash
+   poetry install
+   ```
+2. 启动 GraphDB + FastAPI 服务：
+   ```bash
+   docker compose up -d graphdb api
+   ```
+3. 初始化 GraphDB 仓库并加载示例数据：
+   ```bash
+   curl -X POST http://localhost:7200/rest/repositories \
+     -H 'Content-Type: application/json' \
+     -d @specs/001-checklist/contracts/graphdb-repo-config.json
+
+   curl -X PUT http://localhost:7200/repositories/circuit/statements \
+     -H 'Content-Type: text/turtle' \
+     --data-binary @data/seed.ttl
+   ```
+4. 运行 CDL 导入 CLI 验证 end-to-end：
+   ```bash
+   poetry run ingest-cdl --input tests/fixtures/esd_single_diode.cdl --design smoke --out data/smoke
+   ```
+5. （可选）调用 API 完成同样流程：
+   ```bash
+   curl -X POST http://localhost:8000/ingest \
+     -H "X-Api-Key: ${API_INGEST_KEY:-change-me}" \
+     -F designName=smoke \
+     -F cdl=@tests/fixtures/esd_single_diode.cdl
+   ```

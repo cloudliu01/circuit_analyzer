@@ -1,3 +1,36 @@
 .codex/*
 .specify/templates/*
 .specify/scripts/*
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.so
+.eggs/
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+
+# Tooling caches
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Environment & logs
+.env
+.env.*
+*.log
+
+# Editor settings
+.vscode/
+.idea/
+
+# Generated data
+data/uploads/
+data/reports/
