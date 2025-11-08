@@ -51,31 +51,59 @@ specs/001-checklist/
 ### Source Code (repository root)
 
 ```text
+src/
+├── cli/
+│   └── ingest_cdl.py
+├── common/
+│   ├── config.py
+│   ├── logging.py
+│   └── api_keys.py
+├── esd/
+│   ├── rules.py
+│   ├── engine.py
+│   └── persistence.py
+├── parser/
+│   ├── cdl_reader.py
+│   ├── rdf_emitter.py
+│   └── ttl_writer.py
+├── patterns/
+│   └── registry.py
+├── query/
+│   └── reachability.py
+├── services/
+│   ├── graphdb_client.py
+│   ├── ingest_service.py
+│   └── ingest_metrics.py
+└── validation/
+    └── shacl_runner.py
 api/
-├── Dockerfile
 └── app/
     ├── main.py
     └── routers/
+        ├── ingest.py
         ├── patterns.py
-        └── query.py
+        ├── query.py
+        └── assessments.py
 patterns/
-├── README.md
 └── inv.subckt
 data/
-└── seed.ttl
+├── seed.ttl
+└── uploads/
 tests/
 ├── fixtures/
 │   ├── esd_no_clamp.cdl
 │   ├── esd_single_diode.cdl
 │   └── lv_mos_direct_pad.cdl
-└── test_esd_rules.py
+├── parser/
+└── esd/
+scripts/
+└── run_quickstart.sh
 specs/
 └── 001-checklist/
-    └── …
 docker-compose.yml
 ```
 
-**Structure Decision**: Single repo housing the FastAPI service, parser/ETL scripts, ontology assets, and tests. GraphDB + API are orchestrated via docker-compose with shared `patterns/` and `data/` volumes, matching the scaffold documented in the spec.
+**Structure Decision**: Single repo with a shared `src/` library (parser/query/esd/patterns/services/common) consumed by both the CLI and FastAPI service. GraphDB + API remain orchestrated via docker-compose, mounting `data/` and `patterns/` alongside the new `src/` modules, matching the scaffold documented in the spec.
 
 ## Complexity Tracking
 

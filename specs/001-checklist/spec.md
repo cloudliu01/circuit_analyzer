@@ -21,6 +21,15 @@ The current repository layout already contains the directories the ontology, pat
 
 ```text
 .
+├── src/
+│   ├── cli/
+│   ├── common/
+│   ├── esd/
+│   ├── parser/
+│   ├── patterns/
+│   ├── query/
+│   ├── services/
+│   └── validation/
 ├── api/
 │   └── app/
 │       ├── main.py
@@ -41,15 +50,42 @@ The current repository layout already contains the directories the ontology, pat
 │       ├── esd_no_clamp.cdl
 │       ├── esd_single_diode.cdl
 │       └── lv_mos_direct_pad.cdl
+├── scripts/
+│   └── run_quickstart.sh (placeholder for automation)
 └── docker-compose.yml
 ```
 
-- `api/app/main.py` hosts the FastAPI surface for pattern registration, constrained reachability queries, and ESD assessment endpoints; new routers belong under `api/app/routers/`.
+- `src/` contains shared libraries used by both CLI and API workflows:
+  - `src/parser` for CDL parsing + RDF emission and TTL writers
+  - `src/query` for constrained reachability builders
+  - `src/esd` for rule logic + persistence helpers
+  - `src/patterns` for pattern metadata + registries
+  - `src/services` for GraphDB + ingestion orchestration + instrumentation
+  - `src/common` for config, logging, secrets, and API-key providers
+  - `src/validation` for SHACL runners
+  - `src/cli` for Typer-based commands (e.g., `ingest-cdl`)
 - `patterns/` stores reusable `.subckt` templates that the API container mounts at `/workspace/patterns` (see `docker-compose.yml`) for live pattern extraction.
 - `data/` contains canonical RDF exports (e.g., `seed.ttl`) and is volume-mounted into both GraphDB (`/opt/graphdb/home`) and the API container for deterministic fixtures.
 - `tests/fixtures/` provides golden SPICE netlists wired into `tests/test_esd_rules.py`; add new regression cases here before expanding rulepacks.
 - `specs/` holds feature documentation, clarifications, and downstream plans; every scaffold change must document its intent in the corresponding spec directory.
+- `scripts/run_quickstart.sh` validates the Quickstart checklist (ingestion + reachability smoke tests) prior to release.
 - `docker-compose.yml` orchestrates GraphDB + API services and binds the `patterns/` and `data/` volumes; keep new services consistent with this composition to avoid drift between local dev and CI.
+
+---
+
+## User Stories & Testing
+
+- **User Story 1 – Netlist Ingestion Pipeline (Priority P1)**  
+  - *Goal*: CAD engineer ingests a full CDL design via CLI or `/ingest`, producing deterministic RDF split into `design/`, `library/`, and `metadata/` TTL artifacts, guarded by SHACL validation and audit-ready provenance.  
+  - *Acceptance / Independent Test*: Run `poetry run ingest-cdl --input tests/fixtures/esd_single_diode.cdl --design test`; confirm the command emits the three TTL artifacts, SHACL report, per-stage duration logs, and uploads a named graph discoverable via `GET /repositories/{id}/contexts`. Repeat via `POST /ingest` to ensure dataset digest + graph URIs match.
+
+- **User Story 2 – Pattern Authoring & Reachability (Priority P2)**  
+  - *Goal*: Pattern author registers templates (receiving SPARQL hashes) and runs constrained reachability queries that honor polarity, alias closure, and voltage limits while logging GraphDB query IDs, dataset digests, and enforcing ≤30 s execution budgets.  
+  - *Acceptance / Independent Test*: POST `/patterns` with a sample template and expect response fields `patternId`, `sparqlHash`. Invoke `/query/reachability` for `PAD_A1` (depth=3) and verify the response includes `status`, `evidencePath`, `queryHash`, `datasetDigest`, and server logs capture query IDs plus timing.
+
+- **User Story 3 – ESD Rule Assessments (Priority P3)**  
+  - *Goal*: Reliability engineer evaluates composite ESD rulepacks (R1–R4) to produce PASS/FAIL/SUSPECT assessments with evidence paths, missing component lists, SPARQL hashes, and dataset digests; LV metadata gaps must block assessments.  
+  - *Acceptance / Independent Test*: Ingest `lv_mos_direct_pad.cdl`, call `/assessments?topPin=PAD_A1`, and confirm FAIL status referencing missing isolation, recorded `query:evidencePath`, `query:missingComponents`, `queryHash`, `datasetDigest`, and a SHACL report link when violations occur.
 
 ---
 
