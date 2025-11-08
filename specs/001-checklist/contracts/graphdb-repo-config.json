@@ -1,0 +1,21 @@
+{
+  "id": "circuit",
+  "title": "Circuit Ontology Workspace",
+  "type": "graphdb",
+  "params": {
+    "ruleset": "owl-horst-optimized",
+    "storage-folder": "repositories/circuit",
+    "enable-context-index": true,
+    "imports": [],
+    "check-for-inconsistencies": true,
+    "entity-index-size": "1000000",
+    "enable-fts-index": false,
+    "fts-indexes": [],
+    "inference-name": "owl-horst-optimized",
+    "entity-id-size": "32",
+    "explicit-entity-cache-size": "100000",
+    "query-timeout-in-seconds": 30,
+    "throw-on-timeout": true,
+    "read-only": false
+  }
+}

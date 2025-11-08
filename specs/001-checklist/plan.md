@@ -1,13 +1,13 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Circuit Ontology Schema and Pattern-Matching Engine
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
+**Branch**: `001-checklist` | **Date**: 2025-11-08 | **Spec**: specs/001-checklist/spec.md
+**Input**: Feature specification from `/specs/001-checklist/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Build an ontology-first pipeline that ingests hierarchical SPICE/Verilog netlists, emits RDF/OWL using the `ckt:/h:/pattern:/tech:/io:/esd:` vocabularies, and persists results inside GraphDB. Provide pattern-registration plus constrained reachability to evaluate ESD rulepacks (pad-to-rail coverage, rail clamps, LV isolation) with deterministic evidence artifacts (SPARQL hash, dataset digest, evidence paths). All work must honor the Constitution’s ontology, determinism, and validation-first requirements while staying inside the documented repository scaffold (FastAPI service, tests, fixtures, data volumes).
 
 ## Technical Context
 
@@ -17,28 +17,35 @@
   the iteration process.
 -->
 
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.11 (Poetry-managed)  
+**Primary Dependencies**: rdflib, pySHACL, FastAPI, Pydantic, requests, SPARQLWrapper, Ontotext GraphDB HTTP APIs  
+**Storage**: GraphDB Free (Docker) with mounted `/opt/graphdb/home` dataset plus on-disk Turtle fixtures under `data/`  
+**Testing**: pytest (+ pySHACL validation harness), ruff for lint/import order, optional mypy for types  
+**Target Platform**: Dockerized Linux services (api + GraphDB) deployable on developer laptops and CI runners  
+**Project Type**: Backend CLI + FastAPI microservice with supporting ETL scripts and SHACL assets  
+**Performance Goals**: ≤30 s per TopPin evaluation (pattern + constrained reachability); pipeline processes ≥100k devices / 1M connections ≤60 s (Constitution §V)  
+**Constraints**: Ontology-first modeling, deterministic transformations, offline-first operation, no proprietary netlists, GraphDB default triplestore, evidence traceability (hash/digest)  
+**Scale/Scope**: Initial scope covers pad-level ESD analysis for ~10–100k device designs with reusable pattern library and regression fixtures
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- **Ontology-First (Principle I)** – Spec enumerates vocabularies + RDF classes; plan keeps all state in GraphDB with RDF serialization. ✅  
+- **Deterministic Transform Pipeline (Principle II)** – Pipeline order (parse → RDF → SHACL → SPARQL → reports) preserved with evidence hashes/digests. ✅  
+- **Test-First & Validation-Driven (Principle III)** – Existing fixtures + pySHACL tests remain mandatory; plan adds regression coverage for each pattern/rule change. ✅  
+- **Semantic Interoperability (Principle IV)** – Namespaces fixed per spec; FastAPI endpoints expose SPARQL / RDF artifacts only. ✅  
+- **Performance & Simplicity (Principle V)** – Targets restated (≤30 s per TopPin, ≤60 s per 100k devices); scoped to simple, inspectable RDF + SPARQL. ✅  
+- **Technology & Domain Semantics (Principle VI)** – Voltage classes, device families, alias closure modeled via `tech:` namespace; reachability honors polarity + LV/HV gating. ✅
+
+**Post-Design Re-check (Phase 1)**: Data model, contracts, and quickstart all encode RDF-first flows, GraphDB default, deterministic evidence hashing, and SHACL validation hooks. No constitution violations introduced; Complexity Tracking remains empty.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
+specs/001-checklist/
 ├── plan.md              # This file (/speckit.plan command output)
 ├── research.md          # Phase 0 output (/speckit.plan command)
 ├── data-model.md        # Phase 1 output (/speckit.plan command)
@@ -56,43 +63,31 @@ specs/[###-feature]/
 -->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
 api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+├── Dockerfile
+└── app/
+    ├── main.py
+    └── routers/
+        ├── patterns.py
+        └── query.py
+patterns/
+├── README.md
+└── inv.subckt
+data/
+└── seed.ttl
+tests/
+├── fixtures/
+│   ├── esd_no_clamp.cdl
+│   ├── esd_single_diode.cdl
+│   └── lv_mos_direct_pad.cdl
+└── test_esd_rules.py
+specs/
+└── 001-checklist/
+    └── …
+docker-compose.yml
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Monorepo centers on `api/` FastAPI service plus shared RDF assets (`patterns/`, `data/`) and pytest fixtures (`tests/fixtures`). Specs for each feature live under `specs/<feature>/`. Docker compose ties GraphDB + API using the documented volumes; no additional sub-projects required.
 
 ## Complexity Tracking
 

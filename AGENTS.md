@@ -17,3 +17,10 @@ Use Conventional Commits (`feat:`, `fix:`, `docs:`) so release tooling can deriv
 
 ## Configuration & Security Notes
 Never commit production SPICE netlists; mask IP by trimming to minimal reproductions in `samples/`. Store Fuseki credentials via environment variables (`FUSEKI_URL`, `FUSEKI_TOKEN`) and document required configs in `.env.example`. When contributing SHACL rules, default to warnings for potentially breaking constraints and explain escalation paths in the PR description.
+
+## Active Technologies
+- Python 3.11 (Poetry-managed) + rdflib, pySHACL, FastAPI, Pydantic, requests, SPARQLWrapper, Ontotext GraphDB HTTP APIs (001-checklist)
+- GraphDB Free (Docker) with mounted `/opt/graphdb/home` dataset plus on-disk Turtle fixtures under `data/` (001-checklist)
+
+## Recent Changes
+- 001-checklist: Added Python 3.11 (Poetry-managed) + rdflib, pySHACL, FastAPI, Pydantic, requests, SPARQLWrapper, Ontotext GraphDB HTTP APIs
