@@ -1,0 +1,160 @@
+openapi: 3.1.0
+info:
+  title: Circuit Pattern & ESD Service
+  version: 0.1.0
+  description: >
+    FastAPI surface for registering subcircuit patterns, executing constrained reachability,
+    and collecting ESD assessments backed by GraphDB.
+servers:
+  - url: http://localhost:8000
+paths:
+  /patterns:
+    post:
+      summary: Register or update a pattern definition
+      operationId: registerPattern
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatternInput'
+      responses:
+        '201':
+          description: Pattern stored with compiled SPARQL template
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatternResponse'
+  /query/reachability:
+    post:
+      summary: Run constrained reachability from TopPin to GlobalRail
+      operationId: runReachability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReachabilityRequest'
+      responses:
+        '200':
+          description: Evidence path + assessment preview
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/ReachabilityResponse'
+  /assessments:
+    get:
+      summary: Retrieve esd:Assessment records for a TopPin
+      operationId: listAssessments
+      parameters:
+        - in: query
+          name: topPin
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: RDF/JSON-LD list of assessments
+          content:
+            application/ld+json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Assessment'
+
+components:
+  schemas:
+    PatternInput:
+      type: object
+      required: [name, sourceSubckt, matchType, scope, constraints]
+      properties:
+        name:
+          type: string
+        sourceSubckt:
+          type: string
+        matchType:
+          type: string
+          enum: [Exact, Structural, Functional, Fuzzy]
+        scope:
+          type: string
+          example: PadNeighborhood(2)
+        constraints:
+          type: object
+          additionalProperties: true
+        template:
+          type: string
+          description: Optional pre-generated SPARQL template; server regenerates if omitted.
+    PatternResponse:
+      type: object
+      properties:
+        patternId:
+          type: string
+        sparqlHash:
+          type: string
+        storedAt:
+          type: string
+          format: date-time
+    ReachabilityRequest:
+      type: object
+      required: [topPin, direction, depth]
+      properties:
+        topPin:
+          type: string
+        direction:
+          type: string
+          enum: [PAD_TO_VDD, PAD_TO_VSS]
+        depth:
+          type: integer
+          minimum: 1
+          maximum: 5
+        requiredDeviceFamilies:
+          type: array
+          items:
+            type: string
+        allowFuzzyMatch:
+          type: boolean
+          default: false
+    ReachabilityResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [PASS, FAIL, SUSPECT, INCOMPLETE]
+        evidencePath:
+          type: array
+          items:
+            type: string
+        missingComponents:
+          type: array
+          items:
+            type: string
+        queryHash:
+          type: string
+        datasetDigest:
+          type: string
+        durationMs:
+          type: integer
+    Assessment:
+      type: object
+      properties:
+        id:
+          type: string
+        ruleId:
+          type: string
+        scope:
+          type: string
+        status:
+          type: string
+          enum: [PASS, FAIL, SUSPECT]
+        evidencePath:
+          type: array
+          items:
+            type: string
+        missingComponents:
+          type: array
+          items:
+            type: string
+        queryHash:
+          type: string
+        datasetDigest:
+          type: string

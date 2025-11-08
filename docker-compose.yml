@@ -1,0 +1,32 @@
+version: "3.9"
+services:
+  graphdb:
+    image: ontotext/graphdb:10.5.3
+    environment:
+      - GRAPHDB_HOME=/opt/graphdb/home
+    ports:
+      - "7200:7200"
+    volumes:
+      - ./data:/opt/graphdb/home
+    healthcheck:
+      test: ["CMD", "bash", "-lc", "curl -fsS http://localhost:7200/rest/monitor/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./api
+    environment:
+      - GRAPHDB_REPOSITORY=${GRAPHDB_REPOSITORY:-circuit}
+      - GRAPHDB_QUERY_ENDPOINT=http://graphdb:7200/repositories/${GRAPHDB_REPOSITORY:-circuit}
+      - GRAPHDB_UPDATE_ENDPOINT=http://graphdb:7200/repositories/${GRAPHDB_REPOSITORY:-circuit}/statements
+      - FUSEKI_QUERY_ENDPOINT=http://graphdb:7200/repositories/${GRAPHDB_REPOSITORY:-circuit}
+      - FUSEKI_UPDATE_ENDPOINT=http://graphdb:7200/repositories/${GRAPHDB_REPOSITORY:-circuit}/statements
+    ports:
+      - "8000:8000"
+    depends_on:
+      graphdb:
+        condition: service_healthy
+    volumes:
+      - ./patterns:/workspace/patterns
+      - ./data:/workspace/data

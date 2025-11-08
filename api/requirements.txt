@@ -1,0 +1,5 @@
+fastapi==0.115.0
+uvicorn==0.30.6
+rdflib==7.0.0
+pyshacl==0.23.0
+requests==2.32.3
