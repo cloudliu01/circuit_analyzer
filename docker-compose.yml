@@ -1,0 +1,32 @@
+version: "3.9"
+services:
+  fuseki:
+    image: stain/jena-fuseki:4.9.0
+    environment:
+      - ADMIN_PASSWORD=${FUSEKI_ADMIN_PASSWORD}
+      - FUSEKI_DATASET=${FUSEKI_DATASET:-dataset}
+    ports:
+      - "3030:3030"
+    volumes:
+      - ./data:/fuseki
+    healthcheck:
+      test: ["CMD", "bash", "-lc", "curl -fsS http://localhost:3030/#/server"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./api
+    environment:
+      - FUSEKI_DATASET=${FUSEKI_DATASET:-dataset}
+      - FUSEKI_URL=http://fuseki:3030
+      - FUSEKI_QUERY_ENDPOINT=http://fuseki:3030/${FUSEKI_DATASET:-dataset}/query
+      - FUSEKI_UPDATE_ENDPOINT=http://fuseki:3030/${FUSEKI_DATASET:-dataset}/update
+    ports:
+      - "8000:8000"
+    depends_on:
+      fuseki:
+        condition: service_healthy
+    volumes:
+      - ./patterns:/workspace/patterns
+      - ./data:/workspace/data

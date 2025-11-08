@@ -1,0 +1,4 @@
+.SUBCKT INV in out vdd gnd
+M1 out in vdd vdd PMOS
+M2 out in gnd gnd NMOS
+.ENDS
