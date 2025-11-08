@@ -33,7 +33,7 @@
 
 **Goal**: As a CAD engineer, I can ingest a full hierarchical CDL netlist (via CLI or `/ingest`) into GraphDB with deterministic RDF, SHACL gating, and API-key enforcement.
 
-**Independent Test**: Run `poetry run ingest-cdl --input tests/fixtures/esd_single_diode.cdl --design test` and verify the CLI uploads a named graph reported by `GET /repositories/{id}/contexts`; POSTing the same CDL through `/ingest` returns matching graph URI and dataset digest.
+**Independent Test**: Run `poetry run ingest-cdl --input tests/fixtures/esd_single_diode.cdl --design test` and confirm the command emits `design/`, `library/`, and `metadata/` TTL artifacts plus a SHACL report, then verify GraphDB shows the new named graph via `GET /repositories/{id}/contexts`; POSTing the same CDL through `/ingest` must return matching graph URI and dataset digest.
 
 - [ ] T009 [P] [US1] Parse CDL `.SUBCKT`, `.INCLUDE`, `.GLOBAL`, and device statements into normalized AST in `src/parser/cdl_reader.py`
 - [ ] T010 [P] [US1] Emit RDF triples for modules/instances/devices/nets with `/` hierarchy paths in `src/parser/rdf_emitter.py`
