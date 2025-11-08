@@ -64,9 +64,10 @@ The current repository layout already contains the directories the ontology, pat
   - `src/common` for config, logging, secrets, and API-key providers
   - `src/validation` for SHACL runners
   - `src/cli` for Typer-based commands (e.g., `ingest-cdl`)
+- `api/app/main.py` hosts the FastAPI service surface, and `api/app/routers/` must always contain `ingest.py`, `patterns.py`, `query.py`, and `assessments.py` so the contracts remain routable.
 - `patterns/` stores reusable `.subckt` templates that the API container mounts at `/workspace/patterns` (see `docker-compose.yml`) for live pattern extraction.
 - `data/` contains canonical RDF exports (e.g., `seed.ttl`) and is volume-mounted into both GraphDB (`/opt/graphdb/home`) and the API container for deterministic fixtures.
-- `tests/fixtures/` provides golden SPICE netlists wired into `tests/test_esd_rules.py`; add new regression cases here before expanding rulepacks.
+- `tests/` houses regression suites: fixture CDL netlists under `tests/fixtures/`, parser ingestion tests under `tests/parser/`, pattern + reachability tests in `tests/patterns/`, and ESD rule regression tests in `tests/esd/`.
 - `specs/` holds feature documentation, clarifications, and downstream plans; every scaffold change must document its intent in the corresponding spec directory.
 - `scripts/run_quickstart.sh` validates the Quickstart checklist (ingestion + reachability smoke tests) prior to release.
 - `docker-compose.yml` orchestrates GraphDB + API services and binds the `patterns/` and `data/` volumes; keep new services consistent with this composition to avoid drift between local dev and CI.
