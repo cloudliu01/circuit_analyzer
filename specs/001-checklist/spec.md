@@ -45,10 +45,10 @@ The current repository layout already contains the directories the ontology, pat
 
 - `api/app/main.py` hosts the FastAPI surface for pattern registration, constrained reachability queries, and ESD assessment endpoints; new routers belong under `api/app/routers/`.
 - `patterns/` stores reusable `.subckt` templates that the API container mounts at `/workspace/patterns` (see `docker-compose.yml`) for live pattern extraction.
-- `data/` contains canonical RDF exports (e.g., `seed.ttl`) and is volume-mounted into both Fuseki (`/fuseki`) and the API container for deterministic fixtures.
+- `data/` contains canonical RDF exports (e.g., `seed.ttl`) and is volume-mounted into both GraphDB (`/opt/graphdb/home`) and the API container for deterministic fixtures.
 - `tests/fixtures/` provides golden SPICE netlists wired into `tests/test_esd_rules.py`; add new regression cases here before expanding rulepacks.
 - `specs/` holds feature documentation, clarifications, and downstream plans; every scaffold change must document its intent in the corresponding spec directory.
-- `docker-compose.yml` orchestrates Fuseki + API services and binds the `patterns/` and `data/` volumes; keep new services consistent with this composition to avoid drift between local dev and CI.
+- `docker-compose.yml` orchestrates GraphDB + API services and binds the `patterns/` and `data/` volumes; keep new services consistent with this composition to avoid drift between local dev and CI.
 
 ---
 

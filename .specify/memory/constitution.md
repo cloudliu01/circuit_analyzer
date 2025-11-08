@@ -42,7 +42,7 @@ No protection assessment is valid without domain annotations and alias resolutio
 
 ## Technical & Security Constraints
 
-- **Language / Runtime:** Python 3.11+, rdflib, pySHACL; optional triplestore (Fuseki, GraphDB).
+- **Language / Runtime:** Python 3.11+, rdflib, pySHACL; GraphDB Free is the default triplestore for development (Fuseki only allowed for legacy replay runs).
 - **Interface:** CLI + FastAPI microservice; optional React/TypeScript frontend.
 - **Data Formats:** Turtle (.ttl), JSON-LD; all inputs/outputs valid RDF.
 - **Offline-First:** Platform must function entirely without Internet access.

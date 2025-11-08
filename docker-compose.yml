@@ -1,16 +1,15 @@
 version: "3.9"
 services:
-  fuseki:
-    image: stain/jena-fuseki:4.9.0
+  graphdb:
+    image: ontotext/graphdb:10.5.3
     environment:
-      - ADMIN_PASSWORD=${FUSEKI_ADMIN_PASSWORD}
-      - FUSEKI_DATASET=${FUSEKI_DATASET:-dataset}
+      - GRAPHDB_HOME=/opt/graphdb/home
     ports:
-      - "3030:3030"
+      - "7200:7200"
     volumes:
-      - ./data:/fuseki
+      - ./data:/opt/graphdb/home
     healthcheck:
-      test: ["CMD", "bash", "-lc", "curl -fsS http://localhost:3030/#/server"]
+      test: ["CMD", "bash", "-lc", "curl -fsS http://localhost:7200/rest/monitor/health"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -18,14 +17,15 @@ services:
   api:
     build: ./api
     environment:
-      - FUSEKI_DATASET=${FUSEKI_DATASET:-dataset}
-      - FUSEKI_URL=http://fuseki:3030
-      - FUSEKI_QUERY_ENDPOINT=http://fuseki:3030/${FUSEKI_DATASET:-dataset}/query
-      - FUSEKI_UPDATE_ENDPOINT=http://fuseki:3030/${FUSEKI_DATASET:-dataset}/update
+      - GRAPHDB_REPOSITORY=${GRAPHDB_REPOSITORY:-circuit}
+      - GRAPHDB_QUERY_ENDPOINT=http://graphdb:7200/repositories/${GRAPHDB_REPOSITORY:-circuit}
+      - GRAPHDB_UPDATE_ENDPOINT=http://graphdb:7200/repositories/${GRAPHDB_REPOSITORY:-circuit}/statements
+      - FUSEKI_QUERY_ENDPOINT=http://graphdb:7200/repositories/${GRAPHDB_REPOSITORY:-circuit}
+      - FUSEKI_UPDATE_ENDPOINT=http://graphdb:7200/repositories/${GRAPHDB_REPOSITORY:-circuit}/statements
     ports:
       - "8000:8000"
     depends_on:
-      fuseki:
+      graphdb:
         condition: service_healthy
     volumes:
       - ./patterns:/workspace/patterns
