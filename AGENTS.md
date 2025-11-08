@@ -21,6 +21,8 @@ Never commit production SPICE netlists; mask IP by trimming to minimal reproduct
 ## Active Technologies
 - Python 3.11 (Poetry-managed) + rdflib, pySHACL, FastAPI, Pydantic, requests, SPARQLWrapper, Ontotext GraphDB HTTP APIs (001-checklist)
 - GraphDB Free (Docker) with mounted `/opt/graphdb/home` dataset plus on-disk Turtle fixtures under `data/` (001-checklist)
+- Python 3.11 (Poetry-managed) + rdflib, pySHACL, FastAPI, Pydantic, requests/SPARQLWrapper, Ontotext GraphDB HTTP APIs, typer/Click for CLI wrappers (001-checklist)
+- GraphDB Free (Docker) with `/opt/graphdb/home` volume plus on-disk Turtle artifacts under `data/` (001-checklist)
 
 ## Recent Changes
 - 001-checklist: Added Python 3.11 (Poetry-managed) + rdflib, pySHACL, FastAPI, Pydantic, requests, SPARQLWrapper, Ontotext GraphDB HTTP APIs

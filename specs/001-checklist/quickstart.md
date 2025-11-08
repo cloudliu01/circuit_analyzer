@@ -28,14 +28,31 @@ curl -X PUT http://localhost:7200/repositories/circuit/statements \
   --data-binary @data/seed.ttl
 ```
 
-## 4. Run validation & tests
+## 4. Ingest a CDL design
+CLI workflow:
+```bash
+poetry run ingest-cdl --input samples/foo.cdl --design foo --out data/foo
+curl -X PUT http://localhost:7200/repositories/circuit/statements \
+  -H 'Content-Type: text/turtle' \
+  --data-binary @data/foo/design/foo.ttl
+```
+API workflow:
+```bash
+curl -X POST http://localhost:8000/ingest \
+  -H 'X-Api-Key: $API_KEY' \
+  -F designName=foo \
+  -F cdl=@samples/foo.cdl
+```
+- Response returns ingestion ID and named graph URI.
+
+## 5. Run validation & tests
 ```bash
 poetry run pytest --maxfail=1 --cov=api --cov=src
 poetry run pytest tests/test_esd_rules.py -k pad
 poetry run ruff format api tests
 ```
 
-## 5. Register a pattern
+## 6. Register a pattern
 ```bash
 curl -X POST http://localhost:8000/patterns \
   -H 'Content-Type: application/json' \
@@ -43,7 +60,7 @@ curl -X POST http://localhost:8000/patterns \
 ```
 - Response includes `patternId`, SPARQL hash, and persisted metadata.
 
-## 6. Execute constrained reachability
+## 7. Execute constrained reachability
 ```bash
 curl -X POST http://localhost:8000/query/reachability \
   -H 'Content-Type: application/json' \
@@ -51,7 +68,7 @@ curl -X POST http://localhost:8000/query/reachability \
 ```
 - Expect RDF/JSON-LD response with evidence path, status, and missing components.
 
-## 7. Shut down
+## 8. Shut down
 ```bash
 docker compose down
 ```

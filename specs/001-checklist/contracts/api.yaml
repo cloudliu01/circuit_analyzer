@@ -61,6 +61,45 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Assessment'
+  /ingest:
+    post:
+      summary: Upload a CDL design, convert to RDF, and import into GraphDB
+      operationId: ingestDesign
+      parameters:
+        - in: header
+          name: X-Api-Key
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [designName, cdl]
+              properties:
+                designName:
+                  type: string
+                cdl:
+                  type: string
+                  format: binary
+                config:
+                  type: string
+                  description: Optional JSON configuration blob for hierarchy strategy, limits, etc.
+      responses:
+        '202':
+          description: Ingestion accepted and imported into a named graph
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestResponse'
+        '422':
+          description: Missing metadata or SHACL violations blocked ingestion
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestError'
 
 components:
   schemas:
@@ -157,4 +196,29 @@ components:
         queryHash:
           type: string
         datasetDigest:
+          type: string
+    IngestResponse:
+      type: object
+      properties:
+        ingestionId:
+          type: string
+        namedGraph:
+          type: string
+        datasetDigest:
+          type: string
+        sparqlHash:
+          type: string
+        shaclReport:
+          type: string
+          description: Path or URI pointing to SHACL validation results.
+    IngestError:
+      type: object
+      properties:
+        error:
+          type: string
+        missingMetadata:
+          type: array
+          items:
+            type: string
+        shaclReport:
           type: string

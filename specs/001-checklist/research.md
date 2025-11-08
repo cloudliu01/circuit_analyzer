@@ -35,3 +35,9 @@
 - **Alternatives considered**:
   - *Unbounded property paths*: simpler but can explode on large alias graphs.
   - *Manual DFS in Python*: violates ontology-first + reuses less GraphDB optimization.
+
+## Decision 7: CDL ingestion interface
+- **Rationale**: Provide both a Poetry CLI (`poetry run ingest-cdl ...`) and FastAPI `/ingest` endpoint so designers can batch-load full CDL netlists or upload via tooling; both paths share the same parser, SHACL validation, and GraphDB import logic for consistency.
+- **Alternatives considered**:
+  - *UI-only uploads*: slower and harder to automate in CI.
+  - *Direct GraphDB file mounts*: bypasses validation/audit trail and complicates evidence capture.

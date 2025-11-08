@@ -13,6 +13,7 @@ All definitions and behaviors comply with the Constitution principles.
 
 - Q: What performance budget should cap each per-TopPin SPARQL pattern plus constrained reachability evaluation? → A: Allow up to 30 seconds per TopPin to accommodate very large graphs without optimization pressure.
 - Q: How should rule evaluation behave when required metadata (voltage class, alias definitions, model tags) is missing for any device involved? → A: Abort the evaluation run and emit no assessment until metadata gaps are resolved.
+- Q: Which authentication mechanism should guard the `/ingest` API until centralized IAM is ready? → A: Require per-user API keys supplied via `X-Api-Key` header and tracked in Secrets Manager.
 
 ## Scaffold Settings
 
@@ -182,7 +183,41 @@ The engine evaluates R1–R4 and emits an `esd:Assessment` with:
 
 ---
 
-## 6. Validation and Testing
+## 6. Netlist Ingestion Pipeline
+
+### 6.1 CDL Parser Requirements
+- Accept complete hierarchical CDL (`.cdl`) netlists containing `.SUBCKT` definitions, `.INCLUDE` directives, and `.GLOBAL` statements; resolve includes relative to invocation directory and record provenance.
+- Preserve hierarchy paths using `/`-delimited identifiers (e.g., `top/u1/u2`) and emit `h:Module`, `h:Instance`, `ckt:Net`, and `ckt:Device` triples that align with the ontology in §2–§4.
+- Normalize device types and pin ordering using technology library metadata so that downstream pattern matching can rely on consistent `ckt:type` + `ckt:pinType` assignments.
+- Produce deterministic Turtle output split into:
+  - `design/<design-name>.ttl` for topology and hierarchy
+  - `library/<lib-name>.ttl` for reusable cell definitions
+  - `metadata/<design-name>.ttl` capturing ingestion run info (CLI version, timestamp, SHA-256 of source CDL)
+- Provide a Poetry CLI entry point `poetry run ingest-cdl --input samples/foo.cdl --design foo --out data/foo` that drives parsing, RDF generation, SHACL validation, and optional upload to GraphDB.
+- Emit SHACL reports when violations occur and fail the command (non-zero exit) if any constraint is broken.
+
+### 6.2 GraphDB Loading API
+- Add FastAPI endpoint `POST /ingest` that accepts a multipart form:
+  - `designName` (string)
+  - `cdl` (CDL file)
+  - optional `config` (JSON, e.g., hierarchy strategy)
+- Server-side flow:
+  1. Store raw CDL under `data/uploads/<designName>/<timestamp>/`.
+  2. Run the same parser pipeline as the CLI to create RDF artifacts.
+  3. Use GraphDB HTTP API (`PUT /repositories/{repo}/statements`) to import generated Turtle into a named graph `urn:circuit:{designName}:{timestamp}`.
+  4. Record dataset digest, SPARQL hash, and ingestion metadata (`prov:wasDerivedFrom`) inside GraphDB and respond with ingestion ID plus named graph URI.
+- API must reject uploads lacking required technology metadata (voltage class, alias definitions) and return `422` with diagnostic JSON listing the missing facts.
+- Enforce authentication via per-user API keys stored in Secrets Manager; clients must pass `X-Api-Key` on every call, keys map to ingest identity for auditing, and rotation is handled via environment refresh. Apply rate limiting per key to mitigate accidental overload.
+
+### 6.3 Error Handling & Observability
+- Both CLI and API ingestion flows must:
+  - Log per-stage durations (parse, RDF emit, SHACL, GraphDB import) and stop if any single stage exceeds 30 minutes for full-design loads.
+  - Attach `query:missingComponents` entries describing unresolved references (e.g., unknown `.MODEL`) before aborting.
+  - Emit structured JSON or LD responses capturing success/failure, evidence hashes, and pointers to SHACL reports stored under `data/reports/<designName>/`.
+
+---
+
+## 7. Validation and Testing
 - **Pattern Validity:** all generated templates must be valid SPARQL 1.1.
 - **Fixture Library:** include positive/negative ESD cases: `no_clamp`, `single_diode_only`, `reverse_diode`, `lv_mos_direct_pad`, `rc_trigger_blocked`, etc.
 - **Determinism:** same inputs produce the same matches and assessments.
@@ -192,7 +227,7 @@ The engine evaluates R1–R4 and emits an `esd:Assessment` with:
 
 ---
 
-## 7. Versioning
+## 8. Versioning
 - Spec version: **0.4.0**
 - Aligned Constitution version: **1.1.0**
 
